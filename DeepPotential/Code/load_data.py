@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import os
 import pickle
+from scipy.spatial.distance import squareform, pdist
 
 
 def generate_input_file(in_path, out_path, r_c=100000000):
@@ -21,6 +22,31 @@ def generate_input_file(in_path, out_path, r_c=100000000):
         fp.close()
 
 
+def get_input_data(df_input):
+    """
+    Calculate the training input for the sub-networks  from a given molecular configuration.
+
+    Parameters
+    ----------
+    df_input : Pandas Dataframe
+        Single Molecular configuration containing 'atomtype', 'x', 'y', 'z' and 'charge'.
+
+    Returns
+    -------
+    df_X : Pandas Dataframe
+        Training data with 'atomtype' and 'relative position-vector' for all other atoms.
+    df_Y : Pandas Dataframe
+        Training labels.
+
+    """
+    # make a copy
+    df_single = df_input.copy()
+    # create a column for the pos vector
+    df_single['r'] = df_single[['x', 'y', 'z']].values.tolist()
+    dist_matrix = pd.DataFrame(squareform(pdist(df_single.iloc[:, 1:4])),
+                               columns=df_single.index, index=df_single.index)
+    return 1
+
 def transform_input(df_input, Rc):
     old_axes = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     df_input['r'] = df_input[['x', 'y', 'z']].values.tolist()
@@ -38,7 +64,7 @@ def transform_input(df_input, Rc):
             dist_matr[i, j] = dist_ij
             dist_matr[j, i] = dist_ij
         dist_i = dist_matr[i, :]
-        dist_i_clean = [r for j, r in enumerate(dist_i) if df_input.atom[j] != 'H']
+        dist_i_clean = [r for j, r in enumerate(dist_i) if df_input.atomtype[j] != 'H']
         dist_i_clean = sorted(dist_i_clean)
 
         one, two = np.array(df_input.r[np.where(dist_i == dist_i_clean[0])[0][0]]), \
@@ -47,8 +73,11 @@ def transform_input(df_input, Rc):
 
         new_axes = get_new_axes(zero, one, two)
         trans_matr = transformation_matrix(old_axes, new_axes)
-        r_in_Rc = df_input.r[np.where(dist_i <= Rc)[0]].as_matrix()
-
+        inside_rc = np.where(dist_i <= Rc)[0]
+        r_in_Rc = pd.DataFrame()
+        r_in_Rc.r = df_input.r[inside_rc]
+        r_in_Rc.atomtype = df_input.atomtype[inside_rc]
+        #r_in_Rc = r_in_Rc.sort_values('atom')
         transformed = [transform_vector(r_i, zero, trans_matr) for r_i in r_in_Rc]
         transformed = [cart_to_sphere(r_i) for r_i in transformed]
         out_data.append(transformed)
@@ -110,18 +139,19 @@ def cart_to_sphere(vector):
         is_numpy = True
     x, y, z = vector
     r = np.sqrt(x**2 + y**2 + z**2)
-    theta = np.arccos(z/r)
+    #theta = np.arccos(z/r)
     phi = np.arctan2(y, x)
-    network_vector = [1/r, np.cos(theta), np.cos(phi), np.sin(phi)]
+    network_vector = [1/r, z/r, np.cos(phi), np.sin(phi)]
     if is_numpy:
         network_vector = np.array(network_vector)
     return network_vector
 
 
 if __name__ == '__main__':
-    path_to_files = "./../Dataset/dsC7O2H10nsd.xyz/"
-    network_input_file = "./../Dataset/NN_input.txt"
-    generate_input_file(path_to_files, network_input_file)
+    print('Execute Main')
+    #path_to_files = "./../Dataset/dsC7O2H10nsd.xyz/"
+    #network_input_file = "./../Dataset/NN_input.txt"
+    #generate_input_file(path_to_files, network_input_file)
     #old_axes = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
     #new_axes = np.array([[0, 0, -1], [1, 1, 0], [-1, 1, 0]])
     #trans = transformation_matrix(old_axes, new_axes)

@@ -29,7 +29,7 @@ def test_transform_vector():
 
 def test_transform_input():
     df_input = pd.DataFrame()
-    df_input['atom'] = ['C', 'H', 'C', 'C']
+    df_input['atom'] = ['C', 'C', 'C', 'C']
     df_input['x'] = [0., 0., 10., 1.]
     df_input['y'] = [0., 0., 0., 1.]
     df_input['z'] = [1., 0., 0., 1.]
