@@ -1,0 +1,56 @@
+def train(Model, X_data, Y_data, n_epochs, batchsize, abc, use_for_train=0.8, print_every=100):
+    # split dataset into test an train
+    start_time = time.time()
+    total_time = time.time()
+    split = int(X_data.shape[0] * 0.8)
+    X_train = X_data[:split]
+    Y_train = Y_data[:split]
+    X_test = X_data[split:]
+    Y_test = Y_data[split:]
+    # define network
+    model = Model
+    loss_fn = nn.MSELoss()
+    optim = torch.optim.Adam(model.parameters(), lr=update_lr(abc, 0))
+    # empty lists to store data for plotting
+    epochs = []
+    losses = []
+    tests = []
+    time_per_loop = []
+    # learning loop:
+    for epoch in range(n_epochs):
+        #import pdb; pdb.set_trace()
+        ids = np.random.randint(0, X_train.shape[0], batchsize).tolist()
+        Y_pred = model.forward(X_train[ids])
+        loss = loss_fn(Y_pred, Y_train[ids])
+        # prints
+        if epoch % (n_epochs/print_every) == 1:
+            duration = time.time() - start_time
+            print('{}%: {} --- time estimate: {} min'.format(np.round(epoch/n_epochs*100, 1),
+                                                         np.round(loss.data[0], 6),
+                                                         np.round((time.time()-total_time)/epoch*(n_epochs-epoch)/60, 1)))
+            time_per_loop.append(duration)
+            start_time = time.time()
+        # for plots
+        Y_pred_test = model.forward(X_test)
+        mean_err = ((Y_test-Y_pred_test) / \
+                    (Y_test.min() - Y_test.max())
+                   ).abs().mean().data[0]
+        tests.append(mean_err)
+        epochs.append(epoch)
+        losses.append(loss.data[0])
+        # update parameters
+        optim.zero_grad()
+        loss.backward()
+        optim.step()
+        optim.lr = update_lr(abc, epoch)      
+    # create plots
+    f_time, ax_time = plt.subplots()
+    ax_time.plot(range(len(time_per_loop)), time_per_loop)
+    f_loss, ax_loss = plt.subplots()
+    ax_loss.semilogy(epochs, losses)
+    ax_loss.set_title("Loss")
+    f_test, ax_test = plt.subplots()
+    ax_test.plot(epochs, tests)
+    ax_test.set_title("Test: Prediction - Real")
+    
+    return model
