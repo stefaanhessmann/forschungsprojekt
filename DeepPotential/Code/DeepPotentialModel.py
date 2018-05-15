@@ -77,7 +77,7 @@ def update_lr(abc, x):
     return a*b**(x/c)
 
 
-def train(Model, optim, X_data, Y_data, n_epochs, batchsize, abc, use_for_train=0.8, print_every=100):
+def train(Model, optim, X_data, Y_data, n_epochs, batchsize, abc, use_for_train=0.8, print_every=100, n_calc_test=100):
     # empty lists to store data for plotting
     epochs = []
     losses = []
@@ -88,7 +88,8 @@ def train(Model, optim, X_data, Y_data, n_epochs, batchsize, abc, use_for_train=
     total_time = time.time()
 
     # split dataset into test an train
-    split = int(X_data.shape[0] * 0.8)
+    n_batches = int(X_data.shape[0]/batchsize)
+    split = int(n_batches * batchsize * use_for_train)
     X_train = X_data[:split]
     Y_train = Y_data[:split]
     X_test = X_data[split:]
@@ -97,38 +98,45 @@ def train(Model, optim, X_data, Y_data, n_epochs, batchsize, abc, use_for_train=
     model = Model
     loss_fn = nn.MSELoss()
     optim.lr = abc[0]
-    # learning loop:
+
+    n_batches = X_train.shape[0]//batchsize
     for epoch in range(n_epochs):
         #import pdb; pdb.set_trace()
-        # forward pass
-        ids = np.random.randint(0, X_train.shape[0], batchsize).tolist()
-        test_ids = np.random.randint(0, X_test.shape[0], batchsize).tolist()
-        Y_pred = model.forward(X_train[ids])
-        loss = loss_fn(Y_pred, Y_train[ids])
-        # update parameters
-        optim.zero_grad()
-        loss.backward()
-        optim.step()
-        
-        # prints
-        if epoch % print_every == 0 and epoch != 0:
-            duration = time.time() - start_time
-            print('{}%: {} --- time estimate: {} min'.format(np.round(epoch/n_epochs*100, 1),
-                                                         np.round(loss.data[0], 6),
-                                                         np.round((time.time()-total_time)/epoch*(n_epochs-epoch)/60, 1)))
-            time_per_loop.append(duration)
-            start_time = time.time()
-        # for plots
-        Y_pred_test = model.forward(X_test[test_ids])
-        mean_err = loss_fn(Y_pred_test, Y_test[test_ids]).data[0]
-        tests.append(mean_err)
-        epochs.append(epoch)
-        losses.append(loss.data[0])
         optim.lr = update_lr(abc, epoch)
+        print('\nEpoch: {}'.format(epoch))
+        for batch_id in range(n_batches-1):
+            # forward pass
+            X_batch = X_train[batch_id*batchsize:(batch_id+1)*batchsize]
+            Y_batch = Y_train[batch_id*batchsize:(batch_id+1)*batchsize]
+            Y_pred = model.forward(X_batch)
+            loss = loss_fn(Y_pred, Y_batch)
+            # update parameters
+            optim.zero_grad()
+            loss.backward()
+            optim.step()
+            
+            # for plots
+            test_ids = np.random.randint(0, X_test.shape[0], min(X_test.shape[0], n_calc_test)).tolist()
+            Y_pred_test = model.forward(X_test[test_ids])
+            mean_err = loss_fn(Y_pred_test, Y_test[test_ids]).data[0]
+            tests.append(mean_err)
+            epochs.append(epoch)
+            losses.append(loss.data[0])
+
+                        # prints
+            if batch_id % print_every == 0 and batch_id != 0:
+                duration = time.time() - start_time
+                print('total: {} %\tcurrent epoch: {} %\tloss: {}\ttime estimate: {} min'.format(np.round((epoch*batchsize+batch_id)/(n_epochs*n_batches)*100, 1),
+                                                             np.round(batch_id/n_batches*100, 1),
+                                                             np.round(np.mean(losses[-print_every:]), 6),
+                                                             np.round((time.time()-total_time)/(epoch*batchsize+batch_id)*(n_epochs*n_batches-(epoch*batchsize+batch_id))/60, 1)))
+                time_per_loop.append(duration)
+                start_time = time.time()
 
     # create plots
     f_time, ax_time = plt.subplots()
     ax_time.plot(range(len(time_per_loop)), time_per_loop)
+    ax_time.set_title("Time per loop")
     f_loss, ax_loss = plt.subplots()
     ax_loss.semilogy(epochs, losses, label='train')
     ax_loss.set_title("Loss")
