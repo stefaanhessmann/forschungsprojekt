@@ -8,3 +8,5 @@ def create_path(path):
         new_path = os.path.join(new_path, folder)
         if not os.path.exists(new_path):
             os.mkdir(new_path)
+
+
