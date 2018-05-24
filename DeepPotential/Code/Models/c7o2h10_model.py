@@ -111,6 +111,7 @@ def train(Model, optim, X_data, Y_data, n_epochs, batchsize, abc, use_for_train=
             X_batch = X_train[batch_id * batchsize:(batch_id + 1) * batchsize]
             Y_batch = Y_train[batch_id * batchsize:(batch_id + 1) * batchsize]
             Y_pred = model.forward(X_batch)
+            Y_pred = Y_pred.reshape(Y_pred.shape[0])
             loss = loss_fn(Y_pred, Y_batch)
             # update parameters
             optim.zero_grad()
@@ -120,10 +121,11 @@ def train(Model, optim, X_data, Y_data, n_epochs, batchsize, abc, use_for_train=
             # for plots
             test_ids = np.random.randint(0, X_test.shape[0], min(X_test.shape[0], n_calc_test)).tolist()
             Y_pred_test = model.forward(X_test[test_ids])
-            mean_err = loss_fn(Y_pred_test, Y_test[test_ids]).data[0]
+            Y_pred_test = Y_pred_test.reshape(Y_pred_test.shape[0])
+            mean_err = loss_fn(Y_pred_test, Y_test[test_ids]).item()
             tests.append(mean_err)
             epochs.append(epoch)
-            losses.append(loss.data[0])
+            losses.append(loss.item())
 
             # prints
             if batch_id % print_every == 0 and batch_id != 0:
@@ -141,11 +143,11 @@ def train(Model, optim, X_data, Y_data, n_epochs, batchsize, abc, use_for_train=
                     mean_loss,
                     np.round(time_estimate / 60, 1)))
                 time_per_loop.append(av_itertime)
-        mae = np.abs(
-            backtransform(model.forward(X_test), Y_min, Y_max).data.numpy().reshape(len(X_test))
-            - backtransform(Y_test, Y_min, Y_max).data.numpy().reshape(len(Y_test))
-            ).mean()
-        print('The nural network reaches a mean absolute error of {} eV'.format(mae))
+        #mae = np.abs(
+        #    backtransform(model.forward(X_test), Y_min, Y_max).data.numpy().reshape(len(X_test))
+        #    - backtransform(Y_test, Y_min, Y_max).data.numpy().reshape(len(Y_test))
+        #    ).mean()
+        #print('The nural network reaches a mean absolute error of {} eV'.format(mae))
         checkpoint_file = checkpoint_path + 'epoch_{}'.format(epoch)
         torch.save(model.state_dict(), checkpoint_file)
         print('saved checkpoint at: {}\n'.format(checkpoint_file))
