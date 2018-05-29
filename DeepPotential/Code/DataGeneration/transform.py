@@ -56,6 +56,16 @@ def change_base(positions, x, y, z, o):
     new_positions = basis_inv.dot(positions.T).T
     return new_positions
 
+def get_nearest(focus_id, molecule):
+    focus_atom = molecule[focus_id]
+    not_h = (molecule[:, 0] != 1).sum()
+    neighs = np.vstack((molecule[:focus_id], molecule[focus_id+1:]))
+    if not_h >= 3:
+        neighs = molecule[(molecule[:, 0]!=1)]
+    nearest = cdist(focus_atom[np.newaxis, 1:], neighs[:, 1:])
+    nearest = nearest.squeeze().argsort()
+    return neighs[nearest[:2]]
+
 def get_input_data(raw_matrix):
     """
     Calculate the training input for the sub-networks from a given molecular configuration.
@@ -95,17 +105,13 @@ def get_input_data(raw_matrix):
             zero = focus_atom[1:].astype(float)
             # get nearest atoms that are not H
             nearest = distances.argsort()
-            if not_H_atoms >= 3:
-                one_id, two_id = nearest[nearest >= h_atoms][1:3]
-            else:
-                one_id, two_id = nearest[1:3]
-            one = molecule[one_id, 1:].astype(float)
-            two = molecule[two_id, 1:].astype(float)
+            one, two = get_nearest(atom, molecule)[:, 1:]
             # get new basis vectors
             new_x = one - zero
             new_z = np.cross(new_x, two - zero)
-            new_y = np.cross(new_x, new_z)
+            new_y = np.cross(new_z, new_x)
             # normalize basis vectors
+            print(np.linalg.norm(new_x), np.linalg.norm(new_y), np.linalg.norm(new_z))
             new_x /= np.linalg.norm(new_x)
             new_y /= np.linalg.norm(new_y)
             new_z /= np.linalg.norm(new_z)
