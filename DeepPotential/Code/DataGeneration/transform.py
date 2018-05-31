@@ -92,7 +92,7 @@ def get_input_data(raw_matrix):
     # create a column for the pos vector
     # loop over all configurations
     for molecule in raw_matrix:
-        molecule = molecule[molecule[:, 0].argsort()]
+        molecule = molecule[molecule[:, 0].argsort(kind='mergesort')]
         timer.how_long()
         mol_input = []
         for atom in range(len(molecule)):
@@ -102,7 +102,7 @@ def get_input_data(raw_matrix):
             distances = cdist(focus_atom[1:].reshape(1, 3), molecule[:, 1:])[0]
             zero = focus_atom[1:].astype(float)
             # get nearest atoms that are not H
-            nearest = distances.argsort()
+            nearest = distances.argsort(kind='mergesort')
             one, two = get_nearest(focus_atom, others, not_H_atoms)[:, 1:]
             # get new basis vectors
             new_x = one - zero
