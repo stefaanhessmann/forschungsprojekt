@@ -56,12 +56,10 @@ def change_base(positions, x, y, z, o):
     new_positions = basis_inv.dot(positions.T).T
     return new_positions
 
-def get_nearest(focus_id, molecule):
-    focus_atom = molecule[focus_id]
-    not_h = (molecule[:, 0] != 1).sum()
-    neighs = np.vstack((molecule[:focus_id], molecule[focus_id+1:]))
+def get_nearest(focus_atom, neighs, not_h):
+    not_h = (neighs[:, 0] != 1).sum()
     if not_h >= 3:
-        neighs = molecule[(molecule[:, 0]!=1)]
+        neighs = neighs[(neighs[:, 0]!=1)]
     nearest = cdist(focus_atom[np.newaxis, 1:], neighs[:, 1:])
     nearest = nearest.squeeze().argsort()
     return neighs[nearest[:2]]
@@ -105,7 +103,7 @@ def get_input_data(raw_matrix):
             zero = focus_atom[1:].astype(float)
             # get nearest atoms that are not H
             nearest = distances.argsort()
-            one, two = get_nearest(atom, molecule)[:, 1:]
+            one, two = get_nearest(focus_atom, others, not_H_atoms)[:, 1:]
             # get new basis vectors
             new_x = one - zero
             new_z = np.cross(new_x, two - zero)
@@ -116,15 +114,19 @@ def get_input_data(raw_matrix):
             new_y /= np.linalg.norm(new_y)
             new_z /= np.linalg.norm(new_z)
             # sort by distance to origin
+            labels = others[:, 0]
             cart_coords = others[:, 1:].astype(float)
             trans_coords = change_base(cart_coords, new_x, new_y,
                                        new_z, zero)
             spherical_coords = get_spherical(trans_coords)
-            sort_by_dist = spherical_coords[:, 0].argsort()
-            spherical_coords = spherical_coords[sort_by_dist]
-            labels = others[sort_by_dist][:, 0]
-            spherical_coords = spherical_coords[labels.argsort()]
-            net_in_coords = spherical_coords.reshape((n_atoms - 1) * 4).tolist()
+            #sort_by_dist = spherical_coords[:, 0].argsort()
+            #print(sort_by_dist)
+            #spherical_coords = spherical_coords[sort_by_dist]
+            #labels = others[sort_by_dist][:, 0]
+            #print(labels.argsort())
+            #spherical_coords = spherical_coords[labels.argsort()]
+            sort_id = np.lexsort((spherical_coords[:, 0], labels))
+            net_in_coords = spherical_coords[sort_id].reshape((n_atoms - 1) * 4).tolist()
             mol_input.append(net_in_coords)
         network_inputs.append(mol_input)
     return network_inputs
