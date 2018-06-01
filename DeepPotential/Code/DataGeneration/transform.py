@@ -87,12 +87,11 @@ def get_input_data(raw_matrix):
     n_atoms = raw_matrix[0].shape[0]
     h_atoms = np.sum(raw_matrix[0][:, 0] == 1)
     not_H_atoms = n_atoms - h_atoms
-    # make a copy
     network_inputs = []
     # create a column for the pos vector
     # loop over all configurations
     for molecule in raw_matrix:
-        molecule = molecule[molecule[:, 0].argsort(kind='mergesort')]
+        #molecule = molecule[molecule[:, 0].argsort(kind='mergesort')]
         timer.how_long()
         mol_input = []
         for atom in range(len(molecule)):
@@ -109,7 +108,6 @@ def get_input_data(raw_matrix):
             new_z = np.cross(new_x, two - zero)
             new_y = np.cross(new_z, new_x)
             # normalize basis vectors
-            print(np.linalg.norm(new_x), np.linalg.norm(new_y), np.linalg.norm(new_z))
             new_x /= np.linalg.norm(new_x)
             new_y /= np.linalg.norm(new_y)
             new_z /= np.linalg.norm(new_z)
@@ -119,12 +117,6 @@ def get_input_data(raw_matrix):
             trans_coords = change_base(cart_coords, new_x, new_y,
                                        new_z, zero)
             spherical_coords = get_spherical(trans_coords)
-            #sort_by_dist = spherical_coords[:, 0].argsort()
-            #print(sort_by_dist)
-            #spherical_coords = spherical_coords[sort_by_dist]
-            #labels = others[sort_by_dist][:, 0]
-            #print(labels.argsort())
-            #spherical_coords = spherical_coords[labels.argsort()]
             sort_id = np.lexsort((spherical_coords[:, 0], labels))
             net_in_coords = spherical_coords[sort_id].reshape((n_atoms - 1) * 4).tolist()
             mol_input.append(net_in_coords)
