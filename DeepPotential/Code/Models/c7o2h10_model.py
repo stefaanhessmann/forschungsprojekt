@@ -79,10 +79,10 @@ class DeepPotential(nn.Module):
 
 def update_lr(abc, x):
     a, b, c = abc
-    return a * b ** (x / c)
+    return a * b ** (x*0.6/c)
 
 
-def train(Model, optim, X_data, Y_data, n_epochs, batchsize, abc, use_for_train=0.8, print_every=100, n_calc_test=100,
+def train(Model, optim, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, abc, use_for_train=0.8, print_every=100, n_calc_test=100,
           checkpoint_path='ModelCheckpoints/'):
     # empty lists to store data for plotting
     epochs = []
@@ -95,14 +95,14 @@ def train(Model, optim, X_data, Y_data, n_epochs, batchsize, abc, use_for_train=
     start_time = time.time()
     total_time = time.time()
     # normalize Y
-    Y_data, Y_min, Y_max = normalize(Y_data)
+    #Y_data, Y_min, Y_max = normalize(Y_data)
     # split dataset into test an train
-    n_batches = int(X_data.shape[0] / batchsize)
-    split = int(n_batches * batchsize * use_for_train)
-    X_train = X_data[:split]
-    Y_train = Y_data[:split]
-    X_test = X_data[split:]
-    Y_test = Y_data[split:]
+    #n_batches = int(X_train.shape[0] / batchsize)
+    #split = int(n_batches * batchsize * use_for_train)
+    #X_train = X_data[:split]
+    #Y_train = Y_data[:split]
+    #X_test = X_data[split:]
+    #Y_test = Y_data[split:]
     # define network
     model = Model
     loss_fn = nn.MSELoss()
@@ -111,7 +111,7 @@ def train(Model, optim, X_data, Y_data, n_epochs, batchsize, abc, use_for_train=
     n_batches = X_train.shape[0] // batchsize
     for epoch in range(n_epochs):
         # import pdb; pdb.set_trace()
-        optim.lr = update_lr(abc, epoch)
+        #optim.lr = update_lr(abc, epoch)
         print('\nEpoch: {}\tlearning rate: {}\n---'.format(epoch, np.round(optim.lr, 5)))
         for batch_id in range(n_batches - 1):
             # forward pass
@@ -163,10 +163,11 @@ def train(Model, optim, X_data, Y_data, n_epochs, batchsize, abc, use_for_train=
     ax_time.plot(range(len(time_per_loop)), time_per_loop)
     ax_time.set_title("Time per loop")
     f_loss, ax_loss = plt.subplots()
-    ax_loss.semilogy(epochs, losses, label='train')
+    ax_loss.semilogy(range(len(losses)), losses, label='train')
     ax_loss.set_title("Loss")
-    ax_loss.semilogy(epochs, tests, label='test')
-
+    ax_loss.semilogy(range(len(losses)), tests, label='test')
+    ax_loss.legend()
+    f_loss.savefig('loss_plot')
     return model, optim
 
 
