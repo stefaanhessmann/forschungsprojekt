@@ -144,11 +144,14 @@ def train(Model, optim, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, a
                 av_itertime = total_duration / done
                 time_estimate = av_itertime * to_do
                 progress = done / total_iterations
-                print('total: {} %\tcurrent epoch: {} %\tloss: {}\ttime estimate: {} min'.format(
+                output_string = 'total: {} %\tcurrent epoch: {} %\tloss: {}\ttime estimate: {} min'.format(
                     np.round(progress * 100, 1),
                     np.round(batch_id / n_batches * 100, 1),
                     mean_loss,
-                    np.round(time_estimate / 60, 1)))
+                    np.round(time_estimate / 60, 1))
+                print(output_string)
+                with open("logfile.txt", "a") as log_file:
+    				print(output_string, file=log_file)
                 time_per_loop.append(av_itertime)
         #mae = np.abs(
         #    backtransform(model.forward(X_test), Y_min, Y_max).data.numpy().reshape(len(X_test))
