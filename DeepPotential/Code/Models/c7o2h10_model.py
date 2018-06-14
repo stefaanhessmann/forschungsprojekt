@@ -111,7 +111,7 @@ def train(Model, optim, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, a
     n_batches = X_train.shape[0] // batchsize
     for epoch in range(n_epochs):
         # import pdb; pdb.set_trace()
-        #optim.lr = update_lr(abc, epoch)
+        optim.lr = update_lr(abc, epoch)
         print('\nEpoch: {}\tlearning rate: {}\n---'.format(epoch, np.round(optim.lr, 5)))
         for batch_id in range(n_batches - 1):
             # forward pass
@@ -151,7 +151,7 @@ def train(Model, optim, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, a
                     np.round(time_estimate / 60, 1))
                 print(output_string)
                 with open("logfile.txt", "a") as log_file:
-    				print(output_string, file=log_file)
+                    print(output_string, file=log_file)
                 time_per_loop.append(av_itertime)
         #mae = np.abs(
         #    backtransform(model.forward(X_test), Y_min, Y_max).data.numpy().reshape(len(X_test))
