@@ -83,7 +83,7 @@ def update_lr(abc, x):
 
 
 def train(Model, optim, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, abc, use_for_train=0.8, print_every=100, n_calc_test=100,
-          checkpoint_path='ModelCheckpoints/'):
+          checkpoint_path='ModelCheckpoints/', shuffle=False):
     # empty lists to store data for plotting
     epochs = []
     losses = []
@@ -106,17 +106,22 @@ def train(Model, optim, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, a
     # define network
     model = Model
     loss_fn = nn.MSELoss()
-    optim.lr = abc[0]
+    scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.95)
+    #optim.lr = abc[0]
 
     n_batches = X_train.shape[0] // batchsize
     for epoch in range(n_epochs):
         # import pdb; pdb.set_trace()
-        optim.lr = update_lr(abc, epoch)
-        print('\nEpoch: {}\tlearning rate: {}\n---'.format(epoch, np.round(optim.lr, 5)))
+        #optim.lr = update_lr(abc, epoch)
+        #print('\nEpoch: {}\tlearning rate: {}\n---'.format(epoch, np.round(optim.lr, 5)))
+        if shuffle:
+            data_ids = np.arange(X_train.shape[0])
+            np.random.shuffle(data_ids)
         for batch_id in range(n_batches - 1):
             # forward pass
-            X_batch = X_train[batch_id * batchsize:(batch_id + 1) * batchsize]
-            Y_batch = Y_train[batch_id * batchsize:(batch_id + 1) * batchsize]
+            batch_indices = data_ids[batch_id * batchsize:(batch_id + 1) * batchsize]
+            X_batch = X_train[batch_indices]
+            Y_batch = Y_train[batch_indices]
             Y_pred = model.forward(X_batch)
             Y_pred = Y_pred.reshape(Y_pred.shape[0])
             loss = loss_fn(Y_pred, Y_batch)
@@ -126,12 +131,12 @@ def train(Model, optim, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, a
             optim.step()
 
             # for plots
-            test_ids = np.random.randint(0, X_test.shape[0], min(X_test.shape[0], n_calc_test)).tolist()
-            Y_pred_test = model.forward(X_test[test_ids])
-            Y_pred_test = Y_pred_test.reshape(Y_pred_test.shape[0])
-            mean_err = loss_fn(Y_pred_test, Y_test[test_ids]).item()
-            tests.append(mean_err)
-            epochs.append(epoch)
+            #test_ids = np.random.randint(0, X_test.shape[0], min(X_test.shape[0], n_calc_test)).tolist()
+            #Y_pred_test = model.forward(X_test[test_ids])
+            #Y_pred_test = Y_pred_test.reshape(Y_pred_test.shape[0])
+            #mean_err = loss_fn(Y_pred_test, Y_test[test_ids]).item()
+            #tests.append(mean_err)
+            #epochs.append(epoch)
             losses.append(loss.item())
 
             # prints
@@ -161,16 +166,17 @@ def train(Model, optim, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, a
         checkpoint_file = checkpoint_path + 'epoch_{}'.format(epoch)
         torch.save(model.state_dict(), checkpoint_file)
         print('saved checkpoint at: {}\n'.format(checkpoint_file))
+        scheduler.step()
     # create plots
-    f_time, ax_time = plt.subplots()
-    ax_time.plot(range(len(time_per_loop)), time_per_loop)
-    ax_time.set_title("Time per loop")
-    f_loss, ax_loss = plt.subplots()
-    ax_loss.semilogy(range(len(losses)), losses, label='train')
-    ax_loss.set_title("Loss")
-    ax_loss.semilogy(range(len(losses)), tests, label='test')
-    ax_loss.legend()
-    f_loss.savefig('loss_plot')
+    #f_time, ax_time = plt.subplots()
+    #ax_time.plot(range(len(time_per_loop)), time_per_loop)
+    #ax_time.set_title("Time per loop")
+    #f_loss, ax_loss = plt.subplots()
+    #ax_loss.semilogy(range(len(losses)), losses, label='train')
+    #ax_loss.set_title("Loss")
+    #ax_loss.semilogy(range(len(losses)), tests, label='test')
+    #ax_loss.legend()
+    #f_loss.savefig('loss_plot')
     return model, optim
 
 
