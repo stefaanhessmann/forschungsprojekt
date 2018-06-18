@@ -82,7 +82,7 @@ def update_lr(abc, x):
     return a * b ** (x*0.6/c)
 
 
-def train(Model, optim, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, abc, use_for_train=0.8, print_every=100, n_calc_test=100,
+def train(Model, optim, scheduler, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, use_for_train=0.8, print_every=100, n_calc_test=100,
           checkpoint_path='ModelCheckpoints/', shuffle=False):
     # empty lists to store data for plotting
     epochs = []
@@ -106,7 +106,6 @@ def train(Model, optim, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, a
     # define network
     model = Model
     loss_fn = nn.MSELoss()
-    scheduler = torch.optim.lr_scheduler.ExponentialLR(optim, gamma=0.95)
     #optim.lr = abc[0]
 
     n_batches = X_train.shape[0] // batchsize
