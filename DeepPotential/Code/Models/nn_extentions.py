@@ -2,7 +2,7 @@ from torch.optim.lr_scheduler import _LRScheduler
 
 class AbcExponentialLR(_LRScheduler):
 
-    def __init__(self, optimizer, a, b, c, last_epoch=-1):
+    def __init__(self, optimizer, b, c, last_epoch=-1):
         #self.a = a
         self.b = b
         self.c = c
