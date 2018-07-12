@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-
+from DeepPotential.Code.Models.base_model import BaseNet
 
 class SubNetwork(nn.Module):
     def __init__(self, input_dim):
@@ -26,14 +26,18 @@ class SubNetwork(nn.Module):
         return out
 
 
-class DeepPotential(nn.Module):
-    def __init__(self):
-        super(DeepPotential, self).__init__()
+class DeepPotential(BaseNet):
+
+    def __init__(self, optim, loss, cuda=False, lr_scheduler=None):
+        super().__init__(optim, loss, cuda, lr_scheduler)
+
+    def _setup(self):
         # one subnetwork for every layer:
         sub_dim = 2 * 4
         self.h_net = SubNetwork(sub_dim)
         self.o_net = SubNetwork(sub_dim)
         self.c_net = SubNetwork(sub_dim)
+
     def forward(self, X):
         a1 = F.relu(self.h_net.forward(X[:, 0]))
         a2 = F.relu(self.c_net.forward(X[:, 1]))

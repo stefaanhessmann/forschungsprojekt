@@ -78,7 +78,7 @@ class DeepPotential(nn.Module):
         return out
 
 
-def train(model, optim, scheduler, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, use_for_train=0.8, print_every=100, n_calc_test=100,
+def old_train(model, optim, scheduler, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, use_for_train=0.8, print_every=100, n_calc_test=100,
           checkpoint_path='ModelCheckpoints/', shuffle=False):
     # empty lists to store data for plotting
     epochs = []
