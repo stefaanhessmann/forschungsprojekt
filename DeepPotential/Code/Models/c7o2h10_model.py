@@ -7,9 +7,10 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time
 from Code.DataGeneration.saver import create_path
+from Code.Models.base_model import BaseNet
 
 
-class SubNetwork(nn.Module):
+class OLD_SubNetwork(nn.Module):
     def __init__(self, input_dim):
         # 600-400-200-100-80-40-20
         super(SubNetwork, self).__init__()
@@ -41,15 +42,41 @@ class SubNetwork(nn.Module):
         return out
 
 
-class DeepPotential(nn.Module):
+class DeepPotential(BaseNet):
 
-    def __init__(self):
-        super(DeepPotential, self).__init__()
+    def __init__(self, optim, loss, use_cuda, checkpoint_path, lr_scheduler=None):
+        super(DeepPotential, self).__init__(optim, loss, use_cuda,
+                                            checkpoint_path, lr_scheduler)
         # one subnetwork for every layer:
         sub_dim = 18 * 4
-        self.h_net = SubNetwork(sub_dim)
-        self.c_net = SubNetwork(sub_dim)
-        self.o_net = SubNetwork(sub_dim)
+        subnet = nn.Sequential(nn.Linear(sub_dim, 600),
+                               nn.BatchNorm1d(600),
+                               nn.ReLU(),
+                               nn.Linear(600, 400),
+                               nn.BatchNorm1d(400),
+                               nn.ReLU(),
+                               nn.Linear(400, 200),
+                               nn.BatchNorm1d(200),
+                               nn.ReLU(),
+                               nn.Linear(200, 100),
+                               nn.BatchNorm1d(100),
+                               nn.ReLU(),
+                               nn.Linear(100, 80),
+                               nn.BatchNorm1d(80),
+                               nn.ReLU(),
+                               nn.Linear(80, 40),
+                               nn.BatchNorm1d(40),
+                               nn.ReLU(),
+                               nn.Linear(40, 20),
+                               nn.BatchNorm1d(20),
+                               nn.ReLU(),
+                               nn.Linear(20, 1),
+                               nn.ReLU()
+                               )
+        self.h_net = subnet.copy()
+        self.c_net = subnet.copy()
+        self.o_net = subnet.copy()
+
 
     def forward(self, X):
         a1 = F.relu(self.h_net.forward(X[:, 0]))
