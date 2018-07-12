@@ -42,6 +42,7 @@ class SubNetwork(nn.Module):
 
 
 class DeepPotential(nn.Module):
+
     def __init__(self):
         super(DeepPotential, self).__init__()
         # one subnetwork for every layer:
@@ -77,12 +78,7 @@ class DeepPotential(nn.Module):
         return out
 
 
-def update_lr(abc, x):
-    a, b, c = abc
-    return a * b ** (x*0.6/c)
-
-
-def train(Model, optim, scheduler, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, use_for_train=0.8, print_every=100, n_calc_test=100,
+def train(model, optim, scheduler, X_train, Y_train, X_test, Y_test, n_epochs, batchsize, use_for_train=0.8, print_every=100, n_calc_test=100,
           checkpoint_path='ModelCheckpoints/', shuffle=False):
     # empty lists to store data for plotting
     epochs = []
@@ -94,27 +90,13 @@ def train(Model, optim, scheduler, X_train, Y_train, X_test, Y_test, n_epochs, b
     # time measurements
     start_time = time.time()
     total_time = time.time()
-    # normalize Y
-    #Y_data, Y_min, Y_max = normalize(Y_data)
-    # split dataset into test an train
-    #n_batches = int(X_train.shape[0] / batchsize)
-    #split = int(n_batches * batchsize * use_for_train)
-    #X_train = X_data[:split]
-    #Y_train = Y_data[:split]
-    #X_test = X_data[split:]
-    #Y_test = Y_data[split:]
-    # define network
-    model = Model
+    # loss funtion
     loss_fn = nn.MSELoss()
-    #optim.lr = abc[0]
 
     n_batches = X_train.shape[0] // batchsize
+    data_ids = np.arange(X_train.shape[0])
     for epoch in range(n_epochs):
-        # import pdb; pdb.set_trace()
-        #optim.lr = update_lr(abc, epoch)
-        #print('\nEpoch: {}\tlearning rate: {}\n---'.format(epoch, np.round(optim.lr, 5)))
         if shuffle:
-            data_ids = np.arange(X_train.shape[0])
             np.random.shuffle(data_ids)
         for batch_id in range(n_batches - 1):
             # forward pass
@@ -128,14 +110,7 @@ def train(Model, optim, scheduler, X_train, Y_train, X_test, Y_test, n_epochs, b
             optim.zero_grad()
             loss.backward()
             optim.step()
-
             # for plots
-            #test_ids = np.random.randint(0, X_test.shape[0], min(X_test.shape[0], n_calc_test)).tolist()
-            #Y_pred_test = model.forward(X_test[test_ids])
-            #Y_pred_test = Y_pred_test.reshape(Y_pred_test.shape[0])
-            #mean_err = loss_fn(Y_pred_test, Y_test[test_ids]).item()
-            #tests.append(mean_err)
-            #epochs.append(epoch)
             losses.append(loss.item())
 
             # prints
@@ -157,25 +132,13 @@ def train(Model, optim, scheduler, X_train, Y_train, X_test, Y_test, n_epochs, b
                 with open("logfile.txt", "a") as log_file:
                     print(output_string, file=log_file)
                 time_per_loop.append(av_itertime)
-        #mae = np.abs(
-        #    backtransform(model.forward(X_test), Y_min, Y_max).data.numpy().reshape(len(X_test))
-        #    - backtransform(Y_test, Y_min, Y_max).data.numpy().reshape(len(Y_test))
-        #    ).mean()
-        #print('The nural network reaches a mean absolute error of {} eV'.format(mae))
+
         checkpoint_file = checkpoint_path + 'epoch_{}'.format(epoch)
         torch.save(model.state_dict(), checkpoint_file)
         print('saved checkpoint at: {}\n'.format(checkpoint_file))
+        # update learning rate
         scheduler.step()
-    # create plots
-    #f_time, ax_time = plt.subplots()
-    #ax_time.plot(range(len(time_per_loop)), time_per_loop)
-    #ax_time.set_title("Time per loop")
-    #f_loss, ax_loss = plt.subplots()
-    #ax_loss.semilogy(range(len(losses)), losses, label='train')
-    #ax_loss.set_title("Loss")
-    #ax_loss.semilogy(range(len(losses)), tests, label='test')
-    #ax_loss.legend()
-    #f_loss.savefig('loss_plot')
+
     return model, optim
 
 
