@@ -1,4 +1,4 @@
-# fproj
+# Research Project
 This repository contains some implementations of neural networks for molecular representations.
 ## Deep Potential
 status: unfinished  
