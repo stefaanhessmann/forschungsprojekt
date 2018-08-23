@@ -10,6 +10,93 @@ from Code.DataGeneration.saver import create_path
 from Code.Models.base_model import BaseNet
 
 
+class DeepPotential(BaseNet):
+
+    def __init__(self, use_cuda, checkpoint_path, arch=None):
+        super(DeepPotential, self).__init__(use_cuda,
+                                            checkpoint_path,
+                                            arch)
+
+    def _setup(self):
+        # one subnetwork for every layer:
+        sub_dim = 18 * 4
+        for subnetwork in ['h_net', 'o_net', 'c_net']:
+            setattr(self, subnetwork, nn.Sequential(nn.Linear(sub_dim, 80),
+                                                    #nn.ReLU(),
+                                                    #nn.BatchNorm1d(600),
+                                                    #nn.Linear(600, 400),
+                                                    #nn.ReLU(),
+                                                    #nn.BatchNorm1d(400),
+                                                    #nn.Linear(400, 200),
+                                                    #nn.ReLU(),
+                                                    #nn.BatchNorm1d(200),
+                                                    #nn.Linear(200, 100),
+                                                    #nn.ReLU(),
+                                                    #nn.BatchNorm1d(100),
+                                                    #nn.Linear(100, 80),
+                                                    nn.ReLU(),
+                                                    nn.BatchNorm1d(80),
+                                                    nn.Linear(80, 40),
+                                                    nn.ReLU(),
+                                                    nn.BatchNorm1d(40),
+                                                    nn.Linear(40, 20),
+                                                    nn.ReLU(),
+                                                    nn.BatchNorm1d(20),
+                                                    nn.Linear(20, 10),
+                                                    nn.ReLU(),
+                                                    nn.BatchNorm1d(10),
+                                                    nn.Linear(10, 1),
+                                                    nn.ReLU()))
+            
+    def forward(self, X):
+        a1 = self.h_net(X[:, 0])
+        a2 = self.h_net(X[:, 1])
+        a3 = self.h_net(X[:, 2])
+        a4 = self.h_net(X[:, 3])
+        a5 = self.h_net(X[:, 4])
+        a6 = self.h_net(X[:, 5])
+        a7 = self.h_net(X[:, 6])
+        a8 = self.h_net(X[:, 7])
+        a9 = self.h_net(X[:, 8])
+        a10 = self.h_net(X[:, 9])
+        a11 = self.c_net(X[:, 10])
+        a12 = self.c_net(X[:, 11])
+        a13 = self.c_net(X[:, 12])
+        a14 = self.c_net(X[:, 13])
+        a15 = self.c_net(X[:, 14])
+        a16 = self.c_net(X[:, 15])
+        a17 = self.c_net(X[:, 16])
+        a18 = self.o_net(X[:, 17])
+        a19 = self.o_net(X[:, 18])
+        out = a1 + a2 + a3 + a4 + a5 + a6 \
+                + a7 + a8 + a9 + a10 + a11 \
+              + a12 + a13 + a14 + a15 + a16 \
+              + a17 + a18 + a19
+        return out
+
+
+
+def normalize(Y):
+    Y_min = Y.min()
+    Y_max = Y.max()
+    return (Y - Y_min) / (Y_max - Y_min), Y_min, Y_max
+
+def backtransform(Y_normed, Y_min, Y_max):
+    return Y_normed * (Y_max - Y_min) + Y_min
+
+
+
+
+
+
+
+
+
+
+#####################################################################
+# old
+#####################################################################
+
 class OLD_SubNetwork(nn.Module):
     def __init__(self, input_dim):
         # 600-400-200-100-80-40-20
@@ -39,69 +126,6 @@ class OLD_SubNetwork(nn.Module):
         a6 = F.relu(self.h6_bn(self.h6(a5)))
         a7 = F.relu(self.h7_bn(self.h7(a6)))
         out = self.h8(a7)
-        return out
-
-
-class DeepPotential(BaseNet):
-
-    def __init__(self, optim, loss, use_cuda, checkpoint_path, lr_scheduler=None):
-        super(DeepPotential, self).__init__(optim, loss, use_cuda,
-                                            checkpoint_path, lr_scheduler)
-        # one subnetwork for every layer:
-        sub_dim = 18 * 4
-        subnet = nn.Sequential(nn.Linear(sub_dim, 600),
-                               nn.BatchNorm1d(600),
-                               nn.ReLU(),
-                               nn.Linear(600, 400),
-                               nn.BatchNorm1d(400),
-                               nn.ReLU(),
-                               nn.Linear(400, 200),
-                               nn.BatchNorm1d(200),
-                               nn.ReLU(),
-                               nn.Linear(200, 100),
-                               nn.BatchNorm1d(100),
-                               nn.ReLU(),
-                               nn.Linear(100, 80),
-                               nn.BatchNorm1d(80),
-                               nn.ReLU(),
-                               nn.Linear(80, 40),
-                               nn.BatchNorm1d(40),
-                               nn.ReLU(),
-                               nn.Linear(40, 20),
-                               nn.BatchNorm1d(20),
-                               nn.ReLU(),
-                               nn.Linear(20, 1),
-                               nn.ReLU()
-                               )
-        self.h_net = subnet.copy()
-        self.c_net = subnet.copy()
-        self.o_net = subnet.copy()
-
-
-    def forward(self, X):
-        a1 = F.relu(self.h_net.forward(X[:, 0]))
-        a2 = F.relu(self.h_net.forward(X[:, 1]))
-        a3 = F.relu(self.h_net.forward(X[:, 2]))
-        a4 = F.relu(self.h_net.forward(X[:, 3]))
-        a5 = F.relu(self.h_net.forward(X[:, 4]))
-        a6 = F.relu(self.h_net.forward(X[:, 5]))
-        a7 = F.relu(self.h_net.forward(X[:, 6]))
-        a8 = F.relu(self.h_net.forward(X[:, 7]))
-        a9 = F.relu(self.h_net.forward(X[:, 8]))
-        a10 = F.relu(self.h_net.forward(X[:, 9]))
-        a11 = F.relu(self.c_net.forward(X[:, 10]))
-        a12 = F.relu(self.c_net.forward(X[:, 11]))
-        a13 = F.relu(self.c_net.forward(X[:, 12]))
-        a14 = F.relu(self.c_net.forward(X[:, 13]))
-        a15 = F.relu(self.c_net.forward(X[:, 14]))
-        a16 = F.relu(self.c_net.forward(X[:, 15]))
-        a17 = F.relu(self.c_net.forward(X[:, 16]))
-        a18 = F.relu(self.o_net.forward(X[:, 17]))
-        a19 = F.relu(self.o_net.forward(X[:, 18]))
-        out = a1 + a2 + a3 + a4 + a5 + a6 \
-              + a7 + a8 + a9 + a10 + a11 \
-              + a12 + a13 + a14 + a15 + a16 \
-              + a17 + a18 + a19
         return out
 
 
@@ -168,11 +192,3 @@ def old_train(model, optim, scheduler, X_train, Y_train, X_test, Y_test, n_epoch
 
     return model, optim
 
-
-def normalize(Y):
-    Y_min = Y.min()
-    Y_max = Y.max()
-    return (Y - Y_min) / (Y_max - Y_min), Y_min, Y_max
-
-def backtransform(Y_normed, Y_min, Y_max):
-    return Y_normed * (Y_max - Y_min) + Y_min

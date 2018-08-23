@@ -3,21 +3,25 @@ from torch import nn as _nn
 from torch import no_grad as _no_grad
 from torch import cat as _cat
 from Code.DataGeneration.saver import create_path
+from Code.Models.nn_extentions import AbcExponentialLR
 import time
 
 
-class BaseNet(_nn.Modules):
-    def __init__(self, optim, loss, use_cuda, checkpoint_path, lr_scheduler=None):
+class BaseNet(_nn.Module):
+    def __init__(self, use_cuda, checkpoint_path, arch):
         super().__init__()
+        #self.arch = arch
         self._setup()
-        self.optim = optim
-        self.loss = loss
+        #import pdb; pdb.set_trace()
+        self.optim = torch.optim.Adam(self.parameters(), lr=0.01)
+        self.loss_fn = _nn.MSELoss()
+        self.lr_scheduler = AbcExponentialLR(self.optim, 0.96, 1.5)
         self.use_cuda = use_cuda
         if use_cuda:
             self.cuda()
+        self.double()
         self.checkpoint_path = checkpoint_path
         create_path(checkpoint_path)
-        self.lr_scheduler = lr_scheduler
         self.start_fit = 0
         self.epoch = -1
 
@@ -27,7 +31,7 @@ class BaseNet(_nn.Modules):
         Define the layers here.
         """
 
-    def _forward(self):
+    def forward(self, X):
         """
         To be implemented in deriving classes.
         Define the forward pass through the layers here.
@@ -39,9 +43,9 @@ class BaseNet(_nn.Modules):
         """
         progress = round(self.epoch / n_epochs, 2)
         time_estim = round((time.time()-self.start_fit)/self.epoch
-                           * (n_epochs - self.epoch), 2)
+                * (n_epochs - self.epoch)/60, 2)
         status = 'epoch: {}\tprogress: {}\ttime estimate: {}\ttrain loss: {}\ttest loss: {}'.format(
-            self.epoch, progress, time_estim, train_loss, test_loss)
+            self.epoch, progress, time_estim, round(train_loss, 6), round(test_loss, 6))
         print(status)
 
     def _param_save(self):
@@ -55,17 +59,21 @@ class BaseNet(_nn.Modules):
         self.start_fit = time.time()
         train_loss, test_loss = [], []
         for epoch in range(n_epochs):
-            self.epoch = epoch
+            self.epoch = epoch + 1
             train_loss.append(
                 self.train_step(train_loader))
-            with _no_grad():
-                test_loss.append(
-                    self.test_step(test_loader))
+            if test_loader:
+                with _no_grad():
+                    test_loss.append(
+                        self.test_step(test_loader))
+            else:
+                test_loss.append(0)
             if self.lr_scheduler:
                 self.lr_scheduler.step()
             self._param_save()
             self._print_progress(n_epochs, train_loss[-1], test_loss[-1])
         return train_loss, test_loss
+
 
     def train_step(self, loader):
         """
@@ -75,16 +83,16 @@ class BaseNet(_nn.Modules):
         train_loss = 0
         for x, y in loader:
             if self.use_cuda:
-                x = x.cuda(async=self.async)
-                y = y.cuda(async=self.async)
+                x = x.cuda()
+                y = y.cuda()
             self.optim.zero_grad()
             loss = self.forward_and_apply_loss_function(x, y)
             loss.backward()
             train_loss += loss.item()
-            self.optimizer.step()
+            self.optim.step()
         return train_loss / float(len(loader))
 
-    def val_step(self, loader):
+    def test_step(self, loader):
         """
         Run a single validation epoch.
         """
@@ -94,13 +102,13 @@ class BaseNet(_nn.Modules):
             return None
         for x, y in loader:
             if self.use_cuda:
-                x = x.cuda(async=self.async)
-                y = y.cuda(async=self.async)
+                x = x.cuda()
+                y = y.cuda()
             test_loss += self.forward_and_apply_loss_function(x, y).item()
         return test_loss / float(len(loader))
 
     def forward_and_apply_loss_function(self, x, y):
-        return self.loss_fn(self.forward(x), y)
+        return self.loss_fn(self(x).view(-1), y)
 
     def transform(self, loader):
         """
@@ -109,7 +117,7 @@ class BaseNet(_nn.Modules):
         self.eval()
         latent = []
         for x, _ in loader:
-            pred = self.forward(x)
+            pred = self(x)
             if self.use_cuda:
                 pred = pred.cpu()
             latent.append(pred)
