@@ -8,7 +8,7 @@ import time
 
 
 class BaseNet(_nn.Module):
-    def __init__(self, use_cuda, eval_path, arch, abc_scheme=(0.01, 0.96, 1.5)):
+    def __init__(self, use_cuda, eval_path, comment, abc_scheme=(0.01, 0.96, 1.5)):
         super().__init__()
         self._setup()
         self.abc_scheme = abc_scheme
@@ -19,7 +19,8 @@ class BaseNet(_nn.Module):
         if use_cuda:
             self.cuda()
         self.double()
-        self.checkpoint_path = eval_path + '/ModelCheckpoints/'
+        self.comment = comment
+        self.checkpoint_path = eval_path + '/ModelCheckpoints/{}/'.format(self.comment)
         create_path(self.checkpoint_path)
         self.start_fit = 0
         self.epoch = -1
