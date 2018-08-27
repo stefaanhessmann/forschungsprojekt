@@ -15,6 +15,7 @@ class Network(object):
         self.comment = comment
         self.train_losses = []
         self.test_losses = []
+        self.y_min, self.y_max = None, None
         self.train_loader = None
         self.test_loader = None
         self.excluded_data = None
@@ -52,14 +53,13 @@ class Network(object):
         return None
 
     def fit(self, n_epochs):
+        assert (self.train_loader is not None)
         self.train_losses, self.test_losses = self.model.fit(self.train_loader, n_epochs, self.test_loader)
 
         return None
 
     def create_loss_plot(self):
-        if not self.train_losses:
-            print('not trained yet')
-            return
+        assert (self.train_losses != [])
         self.loss_figure = plt.figure()
         plt.plot(self.train_losses)
         if not self.test_losses:
@@ -71,15 +71,20 @@ class Network(object):
             self.create_loss_plot()
         figure_path = self.eval_path + '/loss_plots/{}'.format(self.comment)
         self.loss_figure.savefig(figure_path)
-
         return
 
     def show_loss_plot(self):
         if not self.loss_figure:
             self.create_loss_plot()
         self.loss_figure.show()
-
         return
 
-    def evaluate_model:
-        pass
+    def transform(self, loader):
+        return self.model.transform(loader)
+
+    def calculate_mae(self, loader):
+        pred, y = self.model.transform_with_label(loader)
+        pred = backtransform(pred, self.y_min, self.y_max).squeeze()
+        y = backtransform(y, self.y_min, self.y_max).squeeze()
+        assert (pred.shape == y.shape)
+        return abs(pred - y).mean()

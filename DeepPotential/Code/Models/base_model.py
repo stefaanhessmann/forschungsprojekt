@@ -8,14 +8,15 @@ import time
 
 
 class BaseNet(_nn.Module):
-    def __init__(self, use_cuda, checkpoint_path, arch):
+    def __init__(self, use_cuda, checkpoint_path, arch, abc_scheme=[0.01, 0.96, 1.5]):
         super().__init__()
         #self.arch = arch
         self._setup()
         #import pdb; pdb.set_trace()
+        self.abc_scheme = abc_scheme
         self.optim = torch.optim.Adam(self.parameters(), lr=0.01)
         self.loss_fn = _nn.MSELoss()
-        self.lr_scheduler = AbcExponentialLR(self.optim, 0.96, 1.5)
+        self.lr_scheduler = AbcExponentialLR(self.optim, self.abc_scheme[1], self.abc_scheme[2])
         self.use_cuda = use_cuda
         if use_cuda:
             self.cuda()
@@ -90,6 +91,7 @@ class BaseNet(_nn.Module):
             loss.backward()
             train_loss += loss.item()
             self.optim.step()
+            self.update_momentum()
         return train_loss / float(len(loader))
 
     def test_step(self, loader):
@@ -110,15 +112,39 @@ class BaseNet(_nn.Module):
     def forward_and_apply_loss_function(self, x, y):
         return self.loss_fn(self(x).view(-1), y)
 
-    def transform(self, loader):
+    def _transform(self, loader, with_label=False):
         """
         Apply the model on the data-loader.
         """
         self.eval()
-        latent = []
-        for x, _ in loader:
+        latent, labels = [], []
+        for x, y in loader:
             pred = self(x)
             if self.use_cuda:
                 pred = pred.cpu()
+                y.cpu()
             latent.append(pred)
+            labels.append(y)
+        if with_label:
+            return _cat(latent).data, _cat(labels).data
         return _cat(latent).data
+
+    def transform(self, loader):
+        """
+        Wrapper to transform the data without labels.
+        """
+        return self._transform(loader=loader)
+
+    def transform_with_label(self, loader):
+        """
+        Wrapper to transform the data without labels.
+        """
+        return self._transform(loader=loader, with_label=True)
+
+    def update_momentum(self):
+        a, b, c = self.abc_scheme
+        for subnetwork in self.children():
+            for layer in subnetwork.children():
+                if type(layer) == torch.nn.BatchNorm1d:
+                    layer.momentum = a * b**(0.6*self.epoch/c)
+        return
