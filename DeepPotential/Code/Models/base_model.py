@@ -118,11 +118,10 @@ class BaseNet(_nn.Module):
         self.eval()
         latent, labels = [], []
         for x, y in loader:
-            pred = self(x)
             if self.use_cuda:
-                pred = pred.cpu()
-                y.cpu()
-            latent.append(pred)
+                x = x.cuda()
+            pred = self(x)
+            latent.append(pred.detach().cpu())
             labels.append(y)
         if with_label:
             return _cat(latent).data, _cat(labels).data

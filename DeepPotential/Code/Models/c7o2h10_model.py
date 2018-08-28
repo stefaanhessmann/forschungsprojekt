@@ -12,10 +12,12 @@ from Code.Models.base_model import BaseNet
 
 class DeepPotential(BaseNet):
 
-    def __init__(self, use_cuda, checkpoint_path, arch=None):
+    def __init__(self, use_cuda, eval_path, comment):
+        self.eval_path = eval_path
+        self.comment = comment
         super(DeepPotential, self).__init__(use_cuda,
-                                            checkpoint_path,
-                                            arch)
+                                            eval_path,
+                                            comment)
 
     def _setup(self):
         # one subnetwork for every layer:

@@ -9,10 +9,10 @@ from Code.Models.c7o2h10_model import normalize, backtransform
 
 class Network(object):
 
-    def __init__(self, model, eval_path, comment):
+    def __init__(self, model):
         self.model = model
-        self.eval_path = eval_path
-        self.comment = comment
+        self.eval_path = model.eval_path
+        self.comment = model.comment
         self.train_losses = []
         self.test_losses = []
         self.y_min, self.y_max = None, None
@@ -69,8 +69,9 @@ class Network(object):
     def save_loss_plot(self):
         if not self.loss_figure:
             self.create_loss_plot()
-        figure_path = self.eval_path + '/loss_plots/{}'.format(self.comment)
-        self.loss_figure.savefig(figure_path)
+        figure_path = self.eval_path + '/loss_plots/{}/'.format(self.comment)
+        create_path(figure_path)
+        self.loss_figure.savefig(figure_path+'loss_plot')
         return
 
     def show_loss_plot(self):
@@ -87,4 +88,10 @@ class Network(object):
         pred = backtransform(pred, self.y_min, self.y_max).squeeze()
         y = backtransform(y, self.y_min, self.y_max).squeeze()
         assert (pred.shape == y.shape)
-        return abs(pred - y).mean()
+        return abs(pred - y).mean().numpy().item()
+
+    def calculate_test_mae(self):
+        return self.calculate_mae(self.test_loader)
+
+    def calculate_train_mae(self):
+        return self.calculate_mae(self.train_loader)
