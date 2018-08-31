@@ -8,11 +8,11 @@ import time
 
 
 class BaseNet(_nn.Module):
-    def __init__(self, use_cuda, eval_path, comment, abc_scheme=(0.01, 0.96, 1.5)):
+    def __init__(self, use_cuda, eval_path, comment, abc_scheme=(0.005, 0.96, 3.0)):
         super().__init__()
         self._setup()
         self.abc_scheme = abc_scheme
-        self.optim = torch.optim.Adam(self.parameters(), lr=0.01)
+        self.optim = torch.optim.Adam(self.parameters(), lr=self.abc_scheme[0])
         self.loss_fn = _nn.MSELoss()
         self.lr_scheduler = AbcExponentialLR(self.optim, self.abc_scheme[1], self.abc_scheme[2])
         self.use_cuda = use_cuda
@@ -80,6 +80,7 @@ class BaseNet(_nn.Module):
         Run a single training epoch and do the back-propagation.
         """
         self.train()
+        #self.update_momentum()
         train_loss = 0
         for x, y in loader:
             if self.use_cuda:
@@ -90,7 +91,6 @@ class BaseNet(_nn.Module):
             loss.backward()
             train_loss += loss.item()
             self.optim.step()
-            self.update_momentum()
         return train_loss / float(len(loader))
 
     def test_step(self, loader):
@@ -111,11 +111,14 @@ class BaseNet(_nn.Module):
     def forward_and_apply_loss_function(self, x, y):
         return self.loss_fn(self(x).view(-1), y)
 
-    def _transform(self, loader, with_label=False):
+    def _transform(self, loader, with_label=False, in_train_mode=False):
         """
         Apply the model on the data-loader.
         """
-        self.eval()
+        if in_train_mode:
+            self.train()
+        else:
+            self.eval()
         latent, labels = [], []
         for x, y in loader:
             if self.use_cuda:
@@ -127,22 +130,22 @@ class BaseNet(_nn.Module):
             return _cat(latent).data, _cat(labels).data
         return _cat(latent).data
 
-    def transform(self, loader):
+    def transform(self, loader, in_train_mode=False):
         """
         Wrapper to transform the data without labels.
         """
-        return self._transform(loader=loader)
+        return self._transform(loader=loader, in_train_mode=in_train_mode)
 
-    def transform_with_label(self, loader):
+    def transform_with_label(self, loader, in_train_mode=False):
         """
         Wrapper to transform the data without labels.
         """
-        return self._transform(loader=loader, with_label=True)
+        return self._transform(loader=loader, with_label=True, in_train_mode=in_train_mode)
 
     def update_momentum(self):
         a, b, c = self.abc_scheme
         for subnetwork in self.children():
             for layer in subnetwork.children():
                 if type(layer) == torch.nn.BatchNorm1d:
-                    layer.momentum = a * b**(0.6*self.epoch/c)
+                    layer.momentum = 1 - (a * b**(0.6*self.epoch/c))
         return
