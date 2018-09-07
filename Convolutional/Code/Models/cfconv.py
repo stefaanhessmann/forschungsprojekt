@@ -12,13 +12,13 @@ class Cfconv(nn.Module):
     def __init__(self, n_rbf=300):
         super(Cfconv, self).__init__()
         self.n_rbf = n_rbf
-        self.convnet = nn.Sequential(nn.Linear(self.n_rbf, 64), SSP(), nn.Linear(64, 64), SSP())
+        self.convnet = nn.Sequential(nn.Linear(self.n_rbf, 64), SSP(), nn.Linear(64, 64), SSP()).double()
 
     def forward(self, x, distance):
         gamma = 10
-        w_l = [rbf(d_ij, gamma=gamma) for d_ij in distance]
-        conv = x * w_l
-        return self.convnet(conv)
+        e_k = torch.stack([rbf(d_ij, gamma=gamma) for d_ij in distance])
+        w_l = self.convnet(e_k)
+        return x * w_l.float()
 
 
 
