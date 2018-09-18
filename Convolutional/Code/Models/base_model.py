@@ -117,7 +117,9 @@ class BaseNet(_nn.Module):
         return test_loss / float(len(loader))
 
     def forward_and_apply_loss_function(self, x, y):
-        return self.loss_fn(self(x).squeeze(), y)
+        loss = self.loss_fn(self(x).squeeze(), y)
+        print(loss.data.item())
+        return loss
 
     def _transform(self, loader, with_label=False, in_train_mode=False):
         """

@@ -35,7 +35,7 @@ class SchNet(BaseNet):
         self.n_features = n_features
         self.mean = mean
         self.std = std
-        super(SchNet, self).__init__(use_cuda, eval_path, comment, abc_scheme=(0.005, 0.96, 3.0))
+        super(SchNet, self).__init__(use_cuda, eval_path, comment, abc_scheme=abc_scheme)
 
     def _setup(self):
         self.embedding = nn.Embedding(self.n_atoms, self.n_features)
