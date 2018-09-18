@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
-from Convolutional.Code.Models.cfconv import Cfconv
-from Convolutional.Code.Models.activation_functions import SSP
+from Code.Models.cfconv import Cfconv
+from Code.Models.activation_functions import SSP
 
 class Interaction(nn.Module):
 
