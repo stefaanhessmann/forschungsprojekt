@@ -4,7 +4,7 @@ from Code.Models.activation_functions import SSP
 
 
 def rbf(d_ij, gamma=10, n_rbf=300):
-    result = torch.exp(-gamma*(d_ij-0.1*torch.DoubleTensor(range(n_rbf)))**2)
+    result = torch.exp(-gamma*(d_ij-0.1*torch.DoubleTensor(range(n_rbf)).cuda())**2)
     return result
 
 
