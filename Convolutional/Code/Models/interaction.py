@@ -5,10 +5,11 @@ from Code.Models.activation_functions import SSP
 
 class Interaction(nn.Module):
 
-    def __init__(self):
+    def __init__(self, use_cuda=False):
         super(Interaction, self).__init__()
+        self.use_cuda = use_cuda
         self.atomwise_1 = nn.Linear(64, 64)
-        self.cfconv = Cfconv()
+        self.cfconv = Cfconv(use_cuda=use_cuda)
         self.atomwise_2 = nn.Linear(64, 64)
         self.ssp = SSP()
         self.atomwise_3 = nn.Linear(64, 64)

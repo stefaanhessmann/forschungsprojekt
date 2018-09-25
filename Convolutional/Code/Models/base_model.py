@@ -15,7 +15,7 @@ def create_path(path):
             os.mkdir(new_path)
 
 class BaseNet(_nn.Module):
-    def __init__(self, use_cuda, eval_path, comment, abc_scheme=(0.005, 0.96, 3.0)):
+    def __init__(self, use_cuda, eval_path, comment, abc_scheme=(0.005, 0.96, 3.0), lr_step_every='epoch'):
         super().__init__()
         self._setup()
         self.abc_scheme = abc_scheme
@@ -32,6 +32,8 @@ class BaseNet(_nn.Module):
         create_path(self.checkpoint_path)
         self.start_fit = 0
         self.epoch = -1
+        self.l_steps = 0
+        self.lr_step_every = lr_step_every
 
     def _setup(self):
         """
@@ -76,8 +78,9 @@ class BaseNet(_nn.Module):
                         self.test_step(test_loader))
             else:
                 test_loss.append(0)
-            if self.lr_scheduler:
+            if self.lr_scheduler and self.lr_step_every == 'epoch':
                 self.lr_scheduler.step()
+                print('update the lr at step {}'.format(self.l_steps))
             self._param_save()
             self._print_progress(n_epochs, train_loss[-1], test_loss[-1])
         return train_loss, test_loss
@@ -87,6 +90,7 @@ class BaseNet(_nn.Module):
         """
         Run a single training epoch and do the back-propagation.
         """
+        print('train step')
         self.train()
         #self.update_momentum()
         train_loss = 0
@@ -99,6 +103,10 @@ class BaseNet(_nn.Module):
             loss.backward()
             train_loss += loss.item()
             self.optim.step()
+            self.l_steps += 1
+            if self.lr_scheduler and self.lr_step_every == 'n steps':
+                if self.l_steps % 100000 == 0:
+                    self.lr_scheduler.step()
         return train_loss / float(len(loader))
 
     def test_step(self, loader):
@@ -117,7 +125,7 @@ class BaseNet(_nn.Module):
         return test_loss / float(len(loader))
 
     def forward_and_apply_loss_function(self, x, y):
-        loss = self.loss_fn(self(x).squeeze(), y)
+        loss = self.loss_fn(self(x), y)
         return loss
 
     def _transform(self, loader, with_label=False, in_train_mode=False):

@@ -34,30 +34,34 @@ class Network(object):
         self.excluded_data = None
         self.loss_figure = None
 
-    def create_dataloaders(self, x, y, batch_size=128, use_for_train=0.8, exclude_ids=None, standardize=False):
+    def create_dataloaders(self, x_train, y_train, x_test, y_test, batch_size=128, use_for_train=0.8, exclude_ids=None, standardize=False):
+
+        # stack for normalization and standardization
+        n_train = x_train.shape[0]
+        x = np.vstack((x_train, x_test))
+        y = np.hstack((y_train, y_test))
         # normalize y
         y, self.y_min, self.y_max = normalize(y)
         # standardize x
         if standardize:
-            for column in range(x.shape[-1]):
+            for column in range(x.shape[-1] - 1):
                 col_mean = x[:, :, column].mean()
                 col_std = x[:, :, column].std()
                 x[:, :, column] = (x[:, :, column] - col_mean) / col_std
-        # exclude validation data
-        if exclude_ids:
-            self.excluded_data = [x[exclude_ids], y[exclude_ids]]
-            use_ids = [value for value in range(len(y)) if value not in exclude_ids]
-            x, y = x[use_ids], y[use_ids]
-        # shuffle
-        shuffle_ids = np.arange(0, y.shape[0])
-        np.random.shuffle(shuffle_ids)
-        x = x[shuffle_ids]
-        y = y[shuffle_ids]
-        # split into test and train
-        n_train = int(x.shape[0] * use_for_train)
+        y = y[:, np.newaxis]
+        # split into test and train again:
         x_train, x_test = x[:n_train], x[n_train:]
         y_train, y_test = y[:n_train], y[n_train:]
+        # exclude validation data
+        if exclude_ids:
+            self.excluded_data = [x_train[exclude_ids], y_train[exclude_ids]]
+            use_ids = [value for value in range(len(y_train)) if value not in exclude_ids]
+            x_train, y_train = x_train[use_ids], y_train[use_ids]
+
         # create Dataloaders
+        print(x.shape, y.shape)
+        print(x_train.shape, y_train.shape)
+        print(x_test.shape, y_test.shape)
         train_dataset = data_utils.TensorDataset(torch.DoubleTensor(x_train), torch.DoubleTensor(y_train))
         self.train_loader = data_utils.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True,
                                              pin_memory=True)

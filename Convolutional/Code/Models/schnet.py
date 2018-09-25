@@ -8,13 +8,13 @@ from Code.Models.base_model import BaseNet
 
 class SchNetFeature(nn.Module):
 
-    def __init__(self, mean, std):
+    def __init__(self, mean, std, use_cuda=False):
         super(SchNetFeature, self).__init__()
         self.mean = mean
         self.std = std
-        self.interaction_1 = Interaction()
-        self.interaction_2 = Interaction()
-        self.interaction_3 = Interaction()
+        self.interaction_1 = Interaction(use_cuda=use_cuda)
+        self.interaction_2 = Interaction(use_cuda=use_cuda)
+        self.interaction_3 = Interaction(use_cuda=use_cuda)
         self.atomwise_1 = nn.Linear(64, 32)
         self.ssp = SSP()
         self.atomwise_2 = nn.Linear(32, 1)
