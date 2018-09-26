@@ -15,7 +15,7 @@ def create_path(path):
             os.mkdir(new_path)
 
 class BaseNet(_nn.Module):
-    def __init__(self, use_cuda, eval_path, comment, abc_scheme=(0.005, 0.96, 3.0), lr_step_every='epoch'):
+    def __init__(self, use_cuda, eval_path, comment, abc_scheme=(0.005, 0.96, 3.0), lr_step_every='n steps'):
         super().__init__()
         self._setup()
         self.abc_scheme = abc_scheme
@@ -90,7 +90,7 @@ class BaseNet(_nn.Module):
         """
         Run a single training epoch and do the back-propagation.
         """
-        print('train step')
+        #print('train step')
         self.train()
         #self.update_momentum()
         train_loss = 0
