@@ -34,8 +34,9 @@ class Network(object):
         self.excluded_data = None
         self.loss_figure = None
 
-    def create_dataloaders(self, x_train, y_train, x_test, y_test, batch_size=128, use_for_train=0.8, exclude_ids=None, standardize=False):
-
+    def create_dataloaders(self, x_train, y_train, x_test, y_test, batch_size=128, use_for_train=0.8, exclude_ids=None,
+                           standardize_X=False, normalize_X=False):
+        assert normalize_X + standardize_X <= 1, 'Can not normalize and standardize X data!'
         # stack for normalization and standardization
         n_train = x_train.shape[0]
         x = np.vstack((x_train, x_test))
@@ -43,11 +44,14 @@ class Network(object):
         # normalize y
         y, self.y_min, self.y_max = normalize(y)
         # standardize x
-        if standardize:
+        if standardize_X:
             for column in range(x.shape[-1] - 1):
                 col_mean = x[:, :, column].mean()
                 col_std = x[:, :, column].std()
                 x[:, :, column] = (x[:, :, column] - col_mean) / col_std
+        if normalize_X:
+            for column in range(x.shape[-1] - 1):
+                x[:, :, column] = normalize(x[:, :, column])[0]
         y = y[:, np.newaxis]
         # split into test and train again:
         x_train, x_test = x[:n_train], x[n_train:]
