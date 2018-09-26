@@ -79,10 +79,13 @@ class Network(object):
     def create_loss_plot(self):
         assert (self.train_losses != [])
         self.loss_figure = plt.figure()
-        plt.plot(self.train_losses)
+        plt.plot(self.train_losses, label='train')
         if not self.test_losses:
             return
-        plt.plot(self.test_losses)
+        plt.plot(self.test_losses, label='test')
+        plt.xlabel('epoch')
+        plt.ylabel('loss')
+        plt.legend()
 
     def save_loss_plot(self):
         if not self.loss_figure:
@@ -113,3 +116,17 @@ class Network(object):
 
     def calculate_train_mae(self):
         return self.calculate_mae(self.train_loader)
+
+    def load_network_parameters(self, epoch=-1):
+        checkpoint_path = self.eval_path + '/ModelCheckpoints/{}/'.format(self.comment)
+        assert os.path.exists(checkpoint_path), 'No model parameters for this comment!'
+        files = os.listdir(checkpoint_path)
+        epochs = [int(filename.lstrip('epoch_')) for filename in files]
+        assert epochs != [], 'No model parameters for this comment!'
+        if epoch == -1:
+            epoch = max(epochs)
+        assert epoch in epochs, 'This epoch was not saved!'
+        params_file = checkpoint_path + 'epoch_{}'.format(epoch)
+        self.model = torch.load(params_file)
+        self.model.epoch = epoch
+        print('loading parameter file {} successful'.format(params_file))
