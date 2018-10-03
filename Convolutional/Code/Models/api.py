@@ -68,9 +68,9 @@ class Network(object):
         print(x_test.shape, y_test.shape)
         train_dataset = data_utils.TensorDataset(torch.DoubleTensor(x_train), torch.DoubleTensor(y_train))
         self.train_loader = data_utils.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True,
-                                             pin_memory=True)
+                                             pin_memory=True, num_workers=2)
         test_dataset = data_utils.TensorDataset(torch.DoubleTensor(x_test), torch.DoubleTensor(y_test))
-        self.test_loader = data_utils.DataLoader(test_dataset, batch_size=batch_size, drop_last=True, pin_memory=True)
+        self.test_loader = data_utils.DataLoader(test_dataset, batch_size=batch_size, drop_last=True, pin_memory=True, num_workers=2)
 
         return None
 
