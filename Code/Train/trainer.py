@@ -30,7 +30,7 @@ def create_path(path):
 class Trainer(object):
 
     def __init__(self, model, optimizer, loss_fn, eval_path, comment, lr_scheduler=None, abc_schedule=None,
-                 use_cuda=False, momentum_scheme=False):
+                 use_cuda=False, momentum_scheme=False, lr_step='e1'):
         # related to network
         self.model = model
         self.optim = optimizer(self.model.parameters(), lr=abc_schedule[0])
@@ -41,7 +41,6 @@ class Trainer(object):
         self.use_cuda = use_cuda
         if use_cuda:
             self.model.cuda()
-        self.model.double()
         # related to data
         self.y_min, self.y_max = None, None
         self.train_loader = None
@@ -55,8 +54,10 @@ class Trainer(object):
         self.checkpoint_path = eval_path + '/ModelCheckpoints/{}/'.format(self.comment)
         create_path(self.checkpoint_path)
         # related to training
+        self.lr_step = lr_step
         self.start_fit = 0
-        self.epoch = -1
+        self.epoch = 0
+        self.n_steps = 0
 
     def create_dataloaders(self, x_train, y_train, x_test, y_test, batch_size=128,
                            standardize_X=False, normalize_X=False, pin_memory=True, num_workers=2):
@@ -82,10 +83,10 @@ class Trainer(object):
         y_train, y_test = y[:n_train], y[n_train:]
 
         # create DataLoaders
-        train_dataset = data_utils.TensorDataset(torch.DoubleTensor(x_train), torch.DoubleTensor(y_train))
+        train_dataset = data_utils.TensorDataset(torch.FloatTensor(x_train), torch.FloatTensor(y_train))
         self.train_loader = data_utils.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True,
                                                   pin_memory=pin_memory, num_workers=num_workers)
-        test_dataset = data_utils.TensorDataset(torch.DoubleTensor(x_test), torch.DoubleTensor(y_test))
+        test_dataset = data_utils.TensorDataset(torch.FloatTensor(x_test), torch.FloatTensor(y_test))
         self.test_loader = data_utils.DataLoader(test_dataset, batch_size=batch_size, drop_last=True,
                                                  pin_memory=pin_memory, num_workers=num_workers)
 
@@ -109,8 +110,7 @@ class Trainer(object):
         """
         assert (self.train_loader is not None)
         self.start_fit = time.time()
-        for epoch in range(n_epochs):
-            self.epoch += 1
+        while self.epoch < n_epochs:
             self.train_losses.append(
                 self.train_step(self.train_loader))
             if self.test_loader:
@@ -120,8 +120,11 @@ class Trainer(object):
             else:
                 self.test_losses.append(0)
             if self.lr_scheduler:
-                self.lr_scheduler.step()
+                if (self.lr_step[0] == 'e' and self.epoch % int(self.lr_step[1:])) == 0 or \
+                        (self.lr_step[0] == 's' and self.n_steps % int(self.lr_step[1:]) == 0):
+                    self.lr_scheduler.step()
             self._param_save()
+            self.epoch += 1
             self._print_progress(n_epochs, self.train_losses[-1], self.test_losses[-1])
 
     def train_step(self, loader):
@@ -141,6 +144,7 @@ class Trainer(object):
             loss.backward()
             train_loss += loss.item()
             self.optim.step()
+            self.n_steps += 1
         return train_loss / float(len(loader))
 
     def test_step(self, loader):

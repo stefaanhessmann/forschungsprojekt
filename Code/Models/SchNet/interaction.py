@@ -1,3 +1,4 @@
+import torch
 from torch import nn
 from Code.Models.SchNet.cfconv import Cfconv
 from Code.Models.SchNet.activation_fn import SSP
@@ -18,4 +19,4 @@ class Interaction(nn.Module):
         x_interaction = self.atomwise_2(x_interaction)
         x_interaction = self.ssp(x_interaction)
         x_interaction = self.atomwise_3(x_interaction)
-        return x_l + x_interaction
+        return torch.add(x_l, x_interaction)
