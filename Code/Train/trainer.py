@@ -30,7 +30,7 @@ def create_path(path):
 class Trainer(object):
 
     def __init__(self, model, optimizer, loss_fn, eval_path, comment, lr_scheduler=None, abc_schedule=None,
-                 use_cuda=False, momentum_scheme=False, lr_step='e1'):
+                 use_cuda=False, momentum_scheme=False, lr_step='e1', single_test_batch=False):
         # related to network
         self.model = model
         self.optim = optimizer(self.model.parameters(), lr=abc_schedule[0])
@@ -58,6 +58,7 @@ class Trainer(object):
         self.start_fit = 0
         self.epoch = 0
         self.n_steps = 0
+        self.single_test_batch = single_test_batch
 
     def create_dataloaders(self, x_train, y_train, x_test, y_test, batch_size=128,
                            standardize_X=False, normalize_X=False, pin_memory=True, num_workers=2):
@@ -160,6 +161,9 @@ class Trainer(object):
                 x = x.cuda()
                 y = y.cuda()
             test_loss += self.forward_and_apply_loss_function(x, y).item()
+
+            if self.single_test_batch:
+                return test_loss
         return test_loss / float(len(loader))
 
     def forward_and_apply_loss_function(self, x, y):
