@@ -1,0 +1,4 @@
+[
+  "test_models.py::test_parameter_update_schnet",
+  "test_models.py::test_parameter_updata_deeppotential"
+]

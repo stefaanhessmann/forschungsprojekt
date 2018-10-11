@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.spatial.distance import squareform, cdist
-from Code.DataGeneration.printer import ProgressTimer
+from .printer import ProgressTimer
 
 
 def get_spherical(positions):
