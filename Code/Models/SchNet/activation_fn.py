@@ -1,5 +1,7 @@
+import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
 class SSP(nn.Module):
@@ -9,4 +11,4 @@ class SSP(nn.Module):
         self.shift = shift
 
     def forward(self, x):
-        return torch.log(self.shift*torch.exp(x) + self.shift)
+        return F.softplus(x) - np.log(2)
