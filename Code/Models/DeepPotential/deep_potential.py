@@ -5,6 +5,7 @@ class DeepPotential(nn.Module):
 
     def __init__(self):
         sub_dim = 18 * 4
+        super(DeepPotential, self).__init__()
         for subnetwork in ['h_net', 'o_net', 'c_net']:
             setattr(self, subnetwork, nn.Sequential(nn.Linear(sub_dim, 600),
                                                     nn.ReLU(),
@@ -32,7 +33,6 @@ class DeepPotential(nn.Module):
                                                     # nn.BatchNorm1d(10),
                                                     nn.Linear(10, 1),
                                                     nn.ReLU()))
-        super(DeepPotential, self).__init__()
 
     def forward(self, X):
         a1 = self.h_net(X[:, 0])
