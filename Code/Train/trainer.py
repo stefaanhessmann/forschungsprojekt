@@ -71,12 +71,12 @@ class Trainer(object):
         y, self.y_min, self.y_max = normalize(y)
         # standardize x
         if standardize_X:
-            for column in range(x.shape[-1] - 1):
+            for column in range(x.shape[-1]):
                 col_mean = x[:, :, column].mean()
                 col_std = x[:, :, column].std()
                 x[:, :, column] = (x[:, :, column] - col_mean) / col_std
         if normalize_X:
-            for column in range(x.shape[-1] - 1):
+            for column in range(x.shape[-1]):
                 x[:, :, column] = normalize(x[:, :, column])[0]
         y = y[:, np.newaxis]
         # split into test and train again:
