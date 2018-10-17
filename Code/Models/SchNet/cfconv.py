@@ -4,7 +4,7 @@ from Code.Models.SchNet.activation_fn import SSP
 
 def rbf(d_ij, gamma=10, n_rbf=300):
 
-    mu_k = 0.1 * torch.linspace(0, 30, n_rbf)
+    mu_k = torch.linspace(0, 30, n_rbf)
     if d_ij.is_cuda:
         mu_k = mu_k.cuda()
     result = torch.exp(-gamma*(d_ij-mu_k)**2)
