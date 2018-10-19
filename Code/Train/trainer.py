@@ -88,7 +88,7 @@ class Trainer(object):
         self.train_loader = data_utils.DataLoader(train_dataset, batch_size=batch_size, shuffle=True, drop_last=True,
                                                   pin_memory=pin_memory, num_workers=num_workers)
         test_dataset = data_utils.TensorDataset(torch.FloatTensor(x_test), torch.FloatTensor(y_test))
-        self.test_loader = data_utils.DataLoader(test_dataset, batch_size=batch_size, drop_last=True,
+        self.test_loader = data_utils.DataLoader(test_dataset, batch_size=batch_size, shuffle=True, drop_last=True,
                                                  pin_memory=pin_memory, num_workers=num_workers)
 
     def _print_progress(self, n_epochs, train_loss, test_loss):
