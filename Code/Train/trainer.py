@@ -6,6 +6,7 @@ from torch import no_grad
 from torch import cat
 from torch.utils import data as data_utils
 from matplotlib import pyplot as plt
+from Code.Models.SchNet.ema import EMA
 
 
 def normalize(Y):
@@ -30,7 +31,7 @@ def create_path(path):
 class Trainer(object):
 
     def __init__(self, model, optimizer, loss_fn, eval_path, comment, lr_scheduler=None, abc_schedule=None,
-                 use_cuda=False, momentum_scheme=False, lr_step='e1', single_test_batch=False):
+                 use_cuda=False, momentum_scheme=False, lr_step='e1', single_test_batch=False, use_ema=False):
         # related to network
         self.model = model
         self.optim = optimizer(self.model.parameters(), lr=abc_schedule[0])
@@ -41,6 +42,13 @@ class Trainer(object):
         self.use_cuda = use_cuda
         if use_cuda:
             self.model.cuda()
+        self.use_ema = use_ema
+        self.ema = None
+        if use_ema:
+            self.ema = EMA(0.99)
+            for name, param in model.named_parameters():
+                if param.requires_grad:
+                    self.ema.register(name, param.data)
         # related to data
         self.y_min, self.y_max = None, None
         self.train_loader = None
@@ -145,6 +153,10 @@ class Trainer(object):
             loss.backward()
             train_loss += loss.item()
             self.optim.step()
+            if self.use_ema:
+                for name, param in self.model.named_parameters():
+                    if param.requires_grad:
+                        param.data = self.ema(name, param.data)
             self.n_steps += 1
         return train_loss / float(len(loader))
 
