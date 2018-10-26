@@ -10,4 +10,4 @@ class EMA():
         assert name in self.shadow
         new_average = (1.0 - self.mu) * x + self.mu * self.shadow[name]
         self.shadow[name] = new_average.clone()
-        return new_average
+        return x

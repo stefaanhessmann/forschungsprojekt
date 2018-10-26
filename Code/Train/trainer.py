@@ -27,13 +27,13 @@ def create_path(path):
         if not os.path.exists(new_path):
             os.mkdir(new_path)
 
-
 class Trainer(object):
 
     def __init__(self, model, optimizer, loss_fn, eval_path, comment, lr_scheduler=None, abc_schedule=None,
                  use_cuda=False, momentum_scheme=False, lr_step='e1', single_test_batch=False, use_ema=False):
         # related to network
         self.model = model
+        self.shadow_model = model.copy()
         self.optim = optimizer(self.model.parameters(), lr=abc_schedule[0])
         self.loss_fn = loss_fn()
         self.lr_scheduler = lr_scheduler(self.optim, *abc_schedule[1:]) if not None else None
@@ -49,6 +49,7 @@ class Trainer(object):
             for name, param in model.named_parameters():
                 if param.requires_grad:
                     self.ema.register(name, param.data)
+            self.shadow_model.parameters = self.ema.shadow
         # related to data
         self.y_min, self.y_max = None, None
         self.train_loader = None
@@ -157,6 +158,7 @@ class Trainer(object):
                 for name, param in self.model.named_parameters():
                     if param.requires_grad:
                         param.data = self.ema(name, param.data)
+                self.shadow_model.parameters = self.ema.shadow
             self.n_steps += 1
         return train_loss / float(len(loader))
 
@@ -165,6 +167,7 @@ class Trainer(object):
         Run a single validation epoch.
         """
         self.model.eval()
+        self.shadow_model.eval()
         test_loss = 0
         if loader is None:
             return None
@@ -172,13 +175,16 @@ class Trainer(object):
             if self.use_cuda:
                 x = x.cuda()
                 y = y.cuda()
-            test_loss += self.forward_and_apply_loss_function(x, y).item()
+
+            test_loss += self.forward_and_apply_loss_function(x, y, shadow=self.use_ema).item()
 
             if self.single_test_batch:
                 return test_loss
         return test_loss / float(len(loader))
 
-    def forward_and_apply_loss_function(self, x, y):
+    def forward_and_apply_loss_function(self, x, y, shadow=False):
+        if shadow:
+            return self.loss_fn(self.shadow_model(x), y)
         return self.loss_fn(self.model(x), y)
 
     def update_momentum(self):
