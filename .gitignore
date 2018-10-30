@@ -1,4 +1,5 @@
 *.DS_Store
 *Dataset*
 *.idea/*
+*ModelCheckpoints*
 *Report/*
