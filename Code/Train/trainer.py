@@ -1,6 +1,7 @@
 import numpy as np
 import torch
 import os
+import copy
 import time
 from torch import no_grad
 from torch import cat
@@ -33,7 +34,7 @@ class Trainer(object):
                  use_cuda=False, momentum_scheme=False, lr_step='e1', single_test_batch=False, use_ema=False):
         # related to network
         self.model = model
-        self.shadow_model = model.copy()
+        self.shadow_model = copy.deepcopy(model)
         self.optim = optimizer(self.model.parameters(), lr=abc_schedule[0])
         self.loss_fn = loss_fn()
         self.lr_scheduler = lr_scheduler(self.optim, *abc_schedule[1:]) if not None else None
@@ -42,6 +43,7 @@ class Trainer(object):
         self.use_cuda = use_cuda
         if use_cuda:
             self.model.cuda()
+            self.shadow_model.cuda()
         self.use_ema = use_ema
         self.ema = None
         if use_ema:
@@ -158,7 +160,9 @@ class Trainer(object):
                 for name, param in self.model.named_parameters():
                     if param.requires_grad:
                         param.data = self.ema(name, param.data)
-                self.shadow_model.parameters = self.ema.shadow
+                for name, param in self.shadow_model.named_parameters():
+                    if param.requires_grad:
+                        param.data = self.ema.shadow[name]
             self.n_steps += 1
         return train_loss / float(len(loader))
 
